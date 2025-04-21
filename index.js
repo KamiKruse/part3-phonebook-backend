@@ -45,7 +45,7 @@ const body = `
 `;
 const generateID = () => {
   const rand = Math.floor(Math.random() * 100000 + 5);
-  return rand;
+  return String(rand);
 };
 
 server.get("/", (req, res) => {
