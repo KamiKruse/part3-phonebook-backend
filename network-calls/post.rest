@@ -2,6 +2,6 @@ POST http://localhost:3001/api/persons
 content-type: application/json
 
 {
-    "name":"From mongoose1",
+    "name":"From mongoose",
     "number": "1111111111"
 }
