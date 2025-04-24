@@ -11,44 +11,6 @@ morgan.token("content", function getContent(req) {
 });
 
 server.use(morgan(":method :url :status :response-time ms :content"));
-let persons = [
-  {
-    id: "1",
-    name: "Arto Hellas",
-    number: "040-123456",
-  },
-  {
-    id: "2",
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
-  },
-  {
-    id: "3",
-    name: "Dan Abramov",
-    number: "12-43-234345",
-  },
-  {
-    id: "4",
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
-  },
-  {
-    id: "5",
-    name: "Mary pop-my-dick",
-    number: "69-69-696969",
-  },
-];
-
-const date = new Date();
-const body = `
-<div>Phonebook has info for ${persons.length} persons</div>
-<br>
-<div>${date.toString()}</div>
-`;
-const generateID = () => {
-  const rand = Math.floor(Math.random() * 100000 + 5);
-  return String(rand);
-};
 
 server.get("/", (req, res) => {
   res.send("<div>Hello from express</div>");
@@ -73,33 +35,32 @@ server.get("/api/persons/:id", (req, res) => {
     })
     .catch((error) => {
       console.log("Error fetching person from DB", error.message);
+      next(error);
     });
 });
 
 server.delete("/api/persons/:id", (req, res) => {
   const id = req.params.id;
-  const person = persons.filter((entry) => entry.id !== id);
-  if (person) {
-    res.json(person);
-  } else {
-    res.statusMessage = "Person not found in the phonebook";
-    res.status(204).end();
-  }
+  Entry.findByIdAndDelete(id)
+    .then((result) => {
+      if (result) {
+        res.json(result);
+      } else {
+        res.statusMessage = "result not found in the phonebook";
+        res.status(204).end();
+      }
+    })
+    .catch((error) => {
+      console.log("Error encountered in deleting from db", error.message);
+      next(error);
+    });
 });
 server.post("/api/persons", (req, res) => {
   const body = req.body;
-  const test = persons.find(
-    (person) => person.name.toLowerCase() === body.name.toLowerCase()
-  );
 
   if (!body.name || !body.number) {
     return res.status(400).json({
       error: "name or number missing",
-    });
-  }
-  if (test) {
-    return res.status(400).json({
-      error: "name must be unique",
     });
   }
   const entry = new Entry({
@@ -111,10 +72,48 @@ server.post("/api/persons", (req, res) => {
   });
 });
 
-server.get("/api/info", (req, res) => {
-  res.send(body);
+server.put("/api/persons/:id", (req, res, next) => {
+  const { name, number } = req.body;
+  const entryToBeUpdated = {};
+  if (name !== undefined) {
+    entryToBeUpdated.name = name;
+  }
+  if (number !== undefined) {
+    entryToBeUpdated.number = number;
+  }
+  if (Object.keys(entryToBeUpdated).length === 0) {
+    return res.status(400).send({ error: "No keys provided for update" });
+  }
+  const options = { new: true, runValidators: true, context: "query" };
+
+  Entry.findByIdAndUpdate(req.params.id, entryToBeUpdated, options)
+    .then((result) => {
+      if (!result) {
+        return response.status(400).end();
+      }
+      res.json(result);
+    })
+    .catch((error) => next(error));
 });
 
+server.get("/api/info", (req, res) => {
+  Entry.find({}).then((result) => {
+    const date = new Date();
+    const body = `<div>Phonebook has info for ${
+      result.length
+    } persons</div><br><div>${date.toString()}</div>`;
+    res.send(body);
+  });
+});
+
+const errorHandler = (error, request, response, next) => {
+  if (error.name === "CastError") {
+    return response.status(400).send({ error: "malformatted id" });
+  }
+  next(error);
+};
+
+server.use(errorHandler);
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`listening on Port: ${PORT}`);
