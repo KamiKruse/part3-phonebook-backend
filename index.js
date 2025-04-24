@@ -1,13 +1,15 @@
+require("dotenv").config();
+const Entry = require("./models/entries");
 const express = require("express");
 const morgan = require("morgan");
-const cors = require("cors");
+
 const server = express();
 server.use(express.static("dist"));
 server.use(express.json());
 morgan.token("content", function getContent(req) {
   return JSON.stringify(req.body);
 });
-server.use(cors());
+
 server.use(morgan(":method :url :status :response-time ms :content"));
 let persons = [
   {
@@ -53,18 +55,25 @@ server.get("/", (req, res) => {
 });
 
 server.get("/api/persons", (req, res) => {
-  res.json(persons);
+  Entry.find({}).then((result) => {
+    res.json(result);
+  });
 });
 
 server.get("/api/persons/:id", (req, res) => {
   const id = req.params.id;
-  const person = persons.find((entry) => entry.id === id);
-  if (person) {
-    res.json(person);
-  } else {
-    res.statusMessage = "Person not found in the phonebook";
-    res.status(404).end();
-  }
+  Entry.findById(id)
+    .then((result) => {
+      if (result) {
+        res.json(result);
+      } else {
+        res.statusMessage = "Person not found in the phonebook";
+        res.status(404).end();
+      }
+    })
+    .catch((error) => {
+      console.log("Error fetching person from DB", error.message);
+    });
 });
 
 server.delete("/api/persons/:id", (req, res) => {
@@ -79,10 +88,10 @@ server.delete("/api/persons/:id", (req, res) => {
 });
 server.post("/api/persons", (req, res) => {
   const body = req.body;
-  const id = generateID();
   const test = persons.find(
     (person) => person.name.toLowerCase() === body.name.toLowerCase()
   );
+
   if (!body.name || !body.number) {
     return res.status(400).json({
       error: "name or number missing",
@@ -93,13 +102,13 @@ server.post("/api/persons", (req, res) => {
       error: "name must be unique",
     });
   }
-  const person = {
-    id: id,
+  const entry = new Entry({
     name: body.name,
     number: body.number,
-  };
-  persons = persons.concat(person);
-  res.json(persons);
+  });
+  entry.save().then((savedEntry) => {
+    res.json(savedEntry);
+  });
 });
 
 server.get("/api/info", (req, res) => {
