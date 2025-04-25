@@ -12,6 +12,10 @@ morgan.token("content", function getContent(req) {
 
 server.use(morgan(":method :url :status :response-time ms :content"));
 
+// Entry.schema.path('number').validate(function(value){
+
+// })
+
 server.get("/", (req, res) => {
   res.send("<div>Hello from express</div>");
 });
