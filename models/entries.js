@@ -8,14 +8,14 @@ mongoose.set("strictQuery", false);
 mongoose
   .connect(url)
   .then(() => {
-    console.log("connecting to mongoDB");
+    console.log("connected to mongoDB");
   })
   .catch((error) => {
     console.log("error connecting to mongoDB", error.message);
   });
 
 const phoneEntrySchema = new mongoose.Schema({
-  name: String,
+  name: { type: String, minLength: 3, required: true },
   number: String,
 });
 phoneEntrySchema.set("toJSON", {
