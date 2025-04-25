@@ -68,7 +68,6 @@ server.post("/api/persons", (req, res, next) => {
     number: body.number,
   });
   entry.save().then((savedEntry) => {
-    console.log(savedEntry)
     res.json(savedEntry);
   }).catch(error => next(error));
 });
